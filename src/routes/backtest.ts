@@ -41,7 +41,7 @@ module Route {
   
         res.json({
           default: noBalanceResult.porfolioBalanceHistoryXY,
-          balanced: balanceOnceADayResult,
+          balanced: balanceOnceADayResult.porfolioBalanceHistoryXY,
         });
       } catch (err) {
         console.error(err)

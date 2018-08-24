@@ -6,7 +6,7 @@
   "scripts": {
     "build": "gulp clean build",
     "lint": "gulp lint",
-    "start": "npm run build && node ./build/server"
+    "start": "npm run build && node --max-old-space-size=8192 ./build/server"
   },
   "engines": {
     "node": "~5.6"
@@ -17,6 +17,8 @@
     "big.js": "^5.1.2",
     "binance-api-node": "^0.8.3",
     "body-parser": "^1.15.2",
+    "cache-manager": "^2.9.0",
+    "cache-manager-mongodb": "^0.1.7",
     "cookie-parser": "^1.4.3",
     "cors": "^2.8.1",
     "express": "^4.14.0",
