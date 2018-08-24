@@ -9,6 +9,7 @@ export class PorfolioBalance {
   get size(): number {
     return this.amountsByAssets.size;
   }
+
   get assetSymbols(): AssetSymbol[] {
     return Array.from(this.amountsByAssets.keys());
   }

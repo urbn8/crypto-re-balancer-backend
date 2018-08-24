@@ -8,7 +8,7 @@ import { Asset } from "../common/Asset";
 import { AdvisorPeriodic } from "../common/AdvisorPeriodic";
 import { oneDayInMilliseconds } from "../common/intervalPresets";
 import * as cache from "../cache";
-import { Timeseries } from "../common/TimeseriesHelper";
+import { Timeseries, UnsafeSmoother, SafeSmoother } from "../common/TimeseriesHelper";
 
 const candleRepo = new CandleMgoRepo()
 
@@ -52,6 +52,7 @@ module Route {
   export class Backtest {
 
     async index(req: express.Request, res: express.Response, next: express.NextFunction) {
+      console.log('index')
       try {
         const defaulta = await cache.getTimeseries(`${ from }_${ to }_once_a_day`)
         const balanced = await cache.getTimeseries(`${ from }_${ to }_default`)
@@ -68,14 +69,62 @@ module Route {
       }
     }
 
+    async smooth(req: express.Request, res: express.Response, next: express.NextFunction) {
+      console.log('smooth')
+      try {
+        const defaulta = await cache.getTimeseries(`${ from }_${ to }_once_a_day_smooth`)
+        const balanced = await cache.getTimeseries(`${ from }_${ to }_default_smooth`)
+
+        res.json({
+          default: timeseries2xy(defaulta),
+          balanced: timeseries2xy(balanced),
+        });
+      } catch (err) {
+        console.error(err)
+        res.send({
+          error: err,
+        })
+      }
+    }
+
     async buildCache(req: express.Request, res: express.Response, next: express.NextFunction) {
+      console.log('buildCache')
       try {
         const chandelier = new Chandelier(assets, candleRepo, from, to)
-        const balanceOnceADayResult = await backtest().backtest(chandelier, new AdvisorPeriodic(oneDayInMilliseconds, 0))
-        const noBalanceResult = await backtest().backtest(chandelier, new AdvisorPeriodic(0, 0))
+        {
+          const balanceOnceADayResult = await backtest().backtest(chandelier, new AdvisorPeriodic(oneDayInMilliseconds, 0))
+          await cache.setTimeseries(`${ from }_${ to }_once_a_day`, balanceOnceADayResult.timeseries)
 
-        await cache.setTimeseries(`${ from }_${ to }_once_a_day`, balanceOnceADayResult.timeseries)
-        await cache.setTimeseries(`${ from }_${ to }_default`, noBalanceResult.timeseries)
+          console.log('balanceOnceADayResult')
+        }
+        
+        {
+          const noBalanceResult = await backtest().backtest(chandelier, new AdvisorPeriodic(0, 0))
+          await cache.setTimeseries(`${ from }_${ to }_default`, noBalanceResult.timeseries)
+
+          console.log('noBalanceResult')
+        }
+
+        res.json({
+          success: true
+        });
+      } catch (err) {
+        console.error(err)
+        res.send({
+          error: err,
+        })
+      }
+    }
+
+    async buildSmoothCache(req: express.Request, res: express.Response, next: express.NextFunction) {
+      try {
+        const defaulta = await cache.getTimeseries(`${ from }_${ to }_once_a_day`)
+        const balanced = await cache.getTimeseries(`${ from }_${ to }_default`)
+
+        const smoother = new SafeSmoother(0.01)
+
+        await cache.setTimeseries(`${ from }_${ to }_once_a_day_smooth`, smoother.smoothTimeseries(defaulta))
+        await cache.setTimeseries(`${ from }_${ to }_default_smooth`, smoother.smoothTimeseries(balanced))
 
         res.json({
           success: true

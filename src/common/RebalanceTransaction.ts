@@ -19,13 +19,17 @@ export class RebalanceTransaction {
     }
   }
 
+  nonZeroAssetsCount(): number {
+    return Array.from(this.exchangeRatesByAssets.values()).reduce((count, rate) => rate.eq(0) ? count : count + 1, 0)
+  }
+
   get rebalanced(): PorfolioBalance {
-    let totalQuoteBalance = new Big(0)
+    let totalQuoteBalance = new Big(0) // in BTC or USDT ...
     this.exchangeRatesByAssets.forEach((exchangeRate, symbol) => {
       totalQuoteBalance = totalQuoteBalance.add(this.initialPorfolioBalance.quote(symbol, exchangeRate))
     })
 
-    const eachAssetQuoteBalance = totalQuoteBalance.div(this.initialPorfolioBalance.size)
+    const eachAssetQuoteBalance = totalQuoteBalance.div(this.nonZeroAssetsCount())
 
     const amountsByAssets: Map<AssetSymbol, Big> = new Map()
 

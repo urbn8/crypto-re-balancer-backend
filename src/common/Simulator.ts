@@ -78,17 +78,5 @@ export class Simulator {
       this.latestTransaction.rebalanced,
       candle.exchangeRate,
     )
-    // if (this.transactions.length === 0) {
-    //   this.transactions.push(new RebalanceTransaction(
-    //     this.initialPorfolioBalance,
-    //     candle.exchangeRate,
-    //   ))
-    //   return
-    // }
-
-    // this.transactions.push(new RebalanceTransaction(
-    //   this.transactions[this.transactions.length - 1].rebalanced,
-    //   candle.exchangeRate,
-    // ))
   }
 }

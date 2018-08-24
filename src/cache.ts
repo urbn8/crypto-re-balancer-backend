@@ -1,5 +1,4 @@
 import { Db, MongoClient } from "mongodb";
-import * as slug from 'slug'
 import { Timeseries } from "./common/TimeseriesHelper";
 
 var url = process.env.MONGO || 'mongodb://localhost:27017/crypto-re-balancer';
@@ -44,6 +43,6 @@ export async function setTimeseries(k: string, v: Timeseries) {
 export async function getTimeseries(k: string): Promise<Timeseries> {
   const conn = await connect()
 
-  const result = await conn.collection(k).find().toArray()
+  const result = await conn.collection(k).find().sort({_id: 1}).toArray()
   return result.map((object): [number, number] => [object._id, object.v])
 }
