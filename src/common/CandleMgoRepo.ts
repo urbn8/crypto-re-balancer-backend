@@ -3,7 +3,7 @@ import { MongoClient, Db } from 'mongodb'
 import { CandleChartResult, CandleChartInterval } from 'binance-api-node';
 import CandleRepo from './CandleRepo';
 
-var url = process.env.MONGO || 'mongodb://localhost:27017';
+var url = process.env.MONGO || 'mongodb://localhost:27017/crypto-re-balancer';
 
 export default class CandleMgoRepo implements CandleRepo {
   private db?: Db
@@ -19,7 +19,7 @@ export default class CandleMgoRepo implements CandleRepo {
         return
       }
 
-      MongoClient.connect(url, (err, mgoClient) => {
+      MongoClient.connect(url, { useNewUrlParser: true }, (err, mgoClient) => {
         if (err) {
           reject(err)
           return

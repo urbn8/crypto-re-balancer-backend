@@ -13,6 +13,8 @@ export class Chandelier {
   constructor(
     public assets: Asset[],
     private candleRepo: CandleRepo,
+    private from: string,
+    private to: string,
   ) {
 
   }
@@ -24,8 +26,8 @@ export class Chandelier {
     // const toTime = moment('2018-02-10')
     // const fromTime = moment('2018-08-10')
     // const fromTime = moment('Fri May 01 2018 09:31:00 GMT+0700 (+07)')
-    const fromTime = moment('2017-07-23T00:00:00.000Z')
-    const toTime = moment('2018-08-23T00:00:00.000Z')
+    const fromTime = moment(this.from)
+    const toTime = moment(this.to)
     let candlesOfAssets = await Promise.all(this.assets.map(async (asset) => {
       // const candles = await this.candleRepo.findAllSince(asset.symbol, '1m', fromTime.toDate())
       const candles = await this.candleRepo.findInRange(asset.symbol, '1m', fromTime.toDate(), toTime.toDate())

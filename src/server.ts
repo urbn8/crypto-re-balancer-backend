@@ -80,6 +80,7 @@ class HttpServer {
         this.router = express.Router();
         const backtest: backtestRouter.Backtest = new backtestRouter.Backtest();
         this.router.get("", backtest.index.bind(backtest.index));
+        this.router.get("/cache", backtest.index.bind(backtest.buildCache));
         this.app.use("/backtest", this.router);
     }
 }
