@@ -11,5 +11,6 @@ export interface Advice {
 }
 
 export interface IAdvisor {
+  readonly name: string
   update(candle: ICandle)
 }

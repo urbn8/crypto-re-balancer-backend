@@ -11,6 +11,10 @@ export class AdvisorPeriodic implements IAdvisor {
 
   }
 
+  get name(): string {
+    return `ery_${ this.rebalanceInterval }`
+  }
+
   update(candle: ICandle): Advice {
     if (!this.firstCandle) {
       this.firstCandle = candle
