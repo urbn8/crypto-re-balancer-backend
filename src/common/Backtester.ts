@@ -27,8 +27,6 @@ export default class Backtester {
           asset: {
             symbol: 'BTCUSDT',
             name: 'Bitcoin',
-            icon: '',
-            color: 'rgb(255, 205, 86)',
           },
           amount: 1,
         },
@@ -36,8 +34,6 @@ export default class Backtester {
           asset: {
             symbol: 'ETHUSDT',
             name: 'Ethereum',
-            icon: '',
-            color: 'rgb(153, 102, 255)',
           },
           amount: 10,
         },
@@ -45,8 +41,6 @@ export default class Backtester {
           asset: {
             symbol: 'BNBUSDT',
             name: 'BNB',
-            icon: '',
-            color: 'rgb(201, 203, 207)',
           },
           amount: 300,
         },
