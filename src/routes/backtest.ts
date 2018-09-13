@@ -10,6 +10,7 @@ import { oneDayInMilliseconds } from "../common/intervalPresets";
 import * as cache from "../cache";
 import { Timeseries, UnsafeSmoother, SafeSmoother, TimelineSmoother } from "../common/TimeseriesHelper";
 import { IAdvisor } from "../common/Advisor";
+import HistoricalPriceDataFetcher from "../common/HistoricalPriceDataFetcher";
 
 const candleRepo = new CandleMgoRepo()
 
@@ -72,6 +73,14 @@ const timelineSmoother = new TimelineSmoother(720) // once half day
 
 module Route {
   export class Backtest {
+
+    async fetchData(req: express.Request, res: express.Response, next: express.NextFunction) {
+      const fetcher = new HistoricalPriceDataFetcher()
+      await fetcher.execute()
+      res.send({
+        ok: true,
+      })
+    }
 
     async indexData(req: express.Request, res: express.Response, next: express.NextFunction) {
       try {

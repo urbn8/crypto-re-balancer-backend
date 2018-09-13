@@ -79,6 +79,7 @@ class HttpServer {
     private BacktestRoutes() {
         this.router = express.Router();
         const backtest: backtestRouter.Backtest = new backtestRouter.Backtest();
+        this.router.post("/fetchData", backtest.fetchData.bind(backtest.fetchData));
         this.router.post("/", backtest.indexData.bind(backtest.indexData));
         this.router.get("/", backtest.get.bind(backtest.get));
         this.app.use("/backtest", this.router);

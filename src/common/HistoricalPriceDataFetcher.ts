@@ -11,7 +11,7 @@ const sleep = (duration: number) => new Promise((resolve) => setTimeout(resolve,
 export default class HistoricalPriceDataFetcher {
   public async execute() {
     console.log('START')
-    for (const symbol of ['BTCUSDT', 'EOSUSDT', 'ETHUSDT', 'BNBUSDT', 'NEOUSDT', 'BCCUSDT', 'TRXUSDT', 'XRPUSDT', 'ETCUSDT', 'LTCUSDT']) {
+    for (const symbol of ["BTCUSDT","ETHUSDT","BNBUSDT","BCCUSDT","NEOUSDT","LTCUSDT","QTUMUSDT","ADAUSDT","XRPUSDT","TUSDUSDT","XLMUSDT","ONTUSDT","TRXUSDT","ETCUSDT","ICXUSDT","VENUSDT"]) {
       console.log('symbol', symbol)
       await this.executeSymbol(symbol, '1m')
       await this.executeSymbol(symbol, '1h')
@@ -23,8 +23,8 @@ export default class HistoricalPriceDataFetcher {
 
   public async executeSymbol(symbol: string, interval: CandleChartInterval) {
     const limit = 500
-    // let tsLast = 1483243199000
-    let tsLast = 1538366399000
+    let tsLast = 1483243199000
+    // let tsLast = 1538366399000
 
     while (true) {
       console.log('tsLast', tsLast)
