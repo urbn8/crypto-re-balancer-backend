@@ -3,7 +3,7 @@
 
 ```
 docker build -t urbn8/crypto-re-balancer-backend .
-docker run -p 8080:8080 --net=host urbn8/crypto-re-balancer-backend
+docker run -p 8080:8080 --net=host -d urbn8/crypto-re-balancer-backend
 ```
 
 ### Why TypeScript?

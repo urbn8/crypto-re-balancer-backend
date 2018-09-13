@@ -18,20 +18,14 @@ const assets: Asset[] = [
   {
     symbol: 'BTCUSDT',
     name: 'Bitcoin',
-    icon: '',
-    color: 'rgb(255, 205, 86)',
   },
   {
     symbol: 'ETHUSDT',
     name: 'Ethereum',
-    icon: '',
-    color: 'rgb(153, 102, 255)',
   },
   {
     symbol: 'BNBUSDT',
     name: 'BNB',
-    icon: '',
-    color: 'rgb(201, 203, 207)',
   },
 ]
 
@@ -126,6 +120,78 @@ module Route {
       }
     }
 
+    // default backtest
+    async default(req: express.Request, res: express.Response, next: express.NextFunction) {
+      const holdAdvisor = neverPeriodicAdvisor
+
+      // TODO : assets
+
+      const rebalancePeriod = parseInt(req.query.rebalancePeriod)
+      const rebalancePeriodUnit = req.query.rebalancePeriodUnit
+      
+      let rebalanceAdvisor: IAdvisor
+      switch (rebalancePeriodUnit) {
+        case 'hour':
+          rebalanceAdvisor = new AdvisorPeriodic(rebalancePeriod * 3600000, 0)
+          break
+        case 'day':
+          rebalanceAdvisor = new AdvisorPeriodic(rebalancePeriod * 86400000, 0)
+          break
+        case 'week':
+          rebalanceAdvisor = new AdvisorPeriodic(rebalancePeriod * 604800000, 0)
+          break
+        case 'never':
+          rebalanceAdvisor = holdAdvisor
+          break
+        default:
+          throw new Error('unsupported rebalancePeriodUnit: ' + rebalancePeriodUnit)
+      }
+
+      const rebalanced = await cache.getTimeseries(cacheIndices.smooth(rebalanceAdvisor, [unsafeSmoother, timelineSmoother]))
+      if (rebalanced.length !== 0) {
+        const hold = await cache.getTimeseries(cacheIndices.smooth(holdAdvisor, [unsafeSmoother, timelineSmoother]))
+
+        res.json({
+          hold: timeseries2xy(hold),
+          rebalance: timeseries2xy(rebalanced),
+        })
+        return
+      }
+
+      async function build(advisor: IAdvisor) {
+        const chandelier = new Chandelier(assets, candleRepo, from, to)
+        const result = await backtest().backtest(chandelier, advisor)
+        const timeseries = result.timeseries
+        await cache.setTimeseries(cacheIndices.raw(advisor), timeseries)
+        console.log('done: ', cacheIndices.raw(advisor))
+
+        const smoothData = unsafeSmoother.smoothTimeseries(timeseries)
+        await cache.setTimeseries(cacheIndices.smooth(advisor, [unsafeSmoother]), smoothData)
+        console.log('done: ', cacheIndices.smooth(advisor, [unsafeSmoother]))
+
+        const timelineSmoothData = timelineSmoother.smoothTimeseries(smoothData)
+        await cache.setTimeseries(cacheIndices.smooth(advisor, [timelineSmoother, timelineSmoother]), timelineSmoothData)
+        console.log('done: ', cacheIndices.smooth(advisor, [timelineSmoother, timelineSmoother]))
+
+        return timelineSmoothData
+      }
+
+      let hold = await cache.getTimeseries(cacheIndices.smooth(holdAdvisor, [unsafeSmoother, timelineSmoother]))
+      if (hold.length === 0) {
+        hold = await build(holdAdvisor)
+      }
+
+      let rebalance = await cache.getTimeseries(cacheIndices.smooth(rebalanceAdvisor, [unsafeSmoother, timelineSmoother]))
+      if (rebalance.length === 0) {
+        rebalance = await build(rebalanceAdvisor)
+      }
+
+      res.json({
+        hold: timeseries2xy(hold),
+        rebalance: timeseries2xy(rebalanced),
+      })
+    }
+
     async get(req: express.Request, res: express.Response, next: express.NextFunction) {
       try {
         let source: 'raw' | 'safesmooth' | 'unsafesmooth' | 'safesmooth_t' | 'unsafesmooth_t' = 'raw'
@@ -133,27 +199,27 @@ module Route {
           source = req.query.source
         }
 
-        let defaulta, balanced
+        let hold, rebalanced
         if (source === 'raw') {
-          defaulta = await cache.getTimeseries(cacheIndices.raw(neverPeriodicAdvisor))
-          balanced = await cache.getTimeseries(cacheIndices.raw(onceADayPeriodicAdvisor))
+          hold = await cache.getTimeseries(cacheIndices.raw(neverPeriodicAdvisor))
+          rebalanced = await cache.getTimeseries(cacheIndices.raw(onceADayPeriodicAdvisor))
         } else if (source === 'safesmooth') {
-          defaulta = await cache.getTimeseries(cacheIndices.smooth(neverPeriodicAdvisor, [safeSmoother]))
-          balanced = await cache.getTimeseries(cacheIndices.smooth(onceADayPeriodicAdvisor, [safeSmoother]))
+          hold = await cache.getTimeseries(cacheIndices.smooth(neverPeriodicAdvisor, [safeSmoother]))
+          rebalanced = await cache.getTimeseries(cacheIndices.smooth(onceADayPeriodicAdvisor, [safeSmoother]))
         } else if (source === 'unsafesmooth') {
-          defaulta = await cache.getTimeseries(cacheIndices.smooth(neverPeriodicAdvisor, [unsafeSmoother]))
-          balanced = await cache.getTimeseries(cacheIndices.smooth(onceADayPeriodicAdvisor, [unsafeSmoother]))
+          hold = await cache.getTimeseries(cacheIndices.smooth(neverPeriodicAdvisor, [unsafeSmoother]))
+          rebalanced = await cache.getTimeseries(cacheIndices.smooth(onceADayPeriodicAdvisor, [unsafeSmoother]))
         } else if (source === 'safesmooth_t') {
-          defaulta = await cache.getTimeseries(cacheIndices.smooth(neverPeriodicAdvisor, [safeSmoother, timelineSmoother]))
-          balanced = await cache.getTimeseries(cacheIndices.smooth(onceADayPeriodicAdvisor, [safeSmoother, timelineSmoother]))
+          hold = await cache.getTimeseries(cacheIndices.smooth(neverPeriodicAdvisor, [safeSmoother, timelineSmoother]))
+          rebalanced = await cache.getTimeseries(cacheIndices.smooth(onceADayPeriodicAdvisor, [safeSmoother, timelineSmoother]))
         } else if (source === 'unsafesmooth_t') {
-          defaulta = await cache.getTimeseries(cacheIndices.smooth(neverPeriodicAdvisor, [unsafeSmoother, timelineSmoother]))
-          balanced = await cache.getTimeseries(cacheIndices.smooth(onceADayPeriodicAdvisor, [unsafeSmoother, timelineSmoother]))
+          hold = await cache.getTimeseries(cacheIndices.smooth(neverPeriodicAdvisor, [unsafeSmoother, timelineSmoother]))
+          rebalanced = await cache.getTimeseries(cacheIndices.smooth(onceADayPeriodicAdvisor, [unsafeSmoother, timelineSmoother]))
         }
 
         res.json({
-          default: timeseries2xy(defaulta),
-          balanced: timeseries2xy(balanced),
+          hold: timeseries2xy(hold),
+          rebalance: timeseries2xy(rebalanced),
         });
       } catch (err) {
         console.error(err)
