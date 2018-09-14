@@ -122,6 +122,7 @@ module Route {
 
     // default backtest
     async default(req: express.Request, res: express.Response, next: express.NextFunction) {
+      console.log('default')
       const holdAdvisor = neverPeriodicAdvisor
 
       // TODO : assets
@@ -149,6 +150,10 @@ module Route {
 
       const rebalanced = await cache.getTimeseries(cacheIndices.smooth(rebalanceAdvisor, [unsafeSmoother, timelineSmoother]))
       if (rebalanced.length !== 0) {
+        console.log('loading from cache',
+          cacheIndices.smooth(rebalanceAdvisor, [unsafeSmoother, timelineSmoother]),
+          cacheIndices.smooth(holdAdvisor, [unsafeSmoother, timelineSmoother]),
+        )
         const hold = await cache.getTimeseries(cacheIndices.smooth(holdAdvisor, [unsafeSmoother, timelineSmoother]))
 
         res.json({
@@ -157,6 +162,10 @@ module Route {
         })
         return
       }
+      console.log('no cache found for ',
+          cacheIndices.smooth(rebalanceAdvisor, [unsafeSmoother, timelineSmoother]),
+          ' building backtest result'
+      )
 
       async function build(advisor: IAdvisor) {
         const chandelier = new Chandelier(assets, candleRepo, from, to)
@@ -170,8 +179,8 @@ module Route {
         console.log('done: ', cacheIndices.smooth(advisor, [unsafeSmoother]))
 
         const timelineSmoothData = timelineSmoother.smoothTimeseries(smoothData)
-        await cache.setTimeseries(cacheIndices.smooth(advisor, [timelineSmoother, timelineSmoother]), timelineSmoothData)
-        console.log('done: ', cacheIndices.smooth(advisor, [timelineSmoother, timelineSmoother]))
+        await cache.setTimeseries(cacheIndices.smooth(advisor, [unsafeSmoother, timelineSmoother]), timelineSmoothData)
+        console.log('done: ', cacheIndices.smooth(advisor, [unsafeSmoother, timelineSmoother]))
 
         return timelineSmoothData
       }
@@ -180,11 +189,13 @@ module Route {
       if (hold.length === 0) {
         hold = await build(holdAdvisor)
       }
+      console.log('Done building for hold')
 
       let rebalance = await cache.getTimeseries(cacheIndices.smooth(rebalanceAdvisor, [unsafeSmoother, timelineSmoother]))
       if (rebalance.length === 0) {
         rebalance = await build(rebalanceAdvisor)
       }
+      console.log('Done building for rebalance')
 
       res.json({
         hold: timeseries2xy(hold),

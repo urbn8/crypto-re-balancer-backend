@@ -18,6 +18,7 @@ function connect(): Promise<Db> {
       }
 
       db = mgoClient.db('cache')
+
       resolve(db)
     })
   })
@@ -26,15 +27,23 @@ function connect(): Promise<Db> {
 export async function setTimeseries(k: string, v: Timeseries) {
   const conn = await connect()
 
-  const col = await conn.collection(k)
+  await conn.createCollection('timeseries')
+  const col = await conn.collection('timeseries')
   await col.deleteMany({})
+  const exist = await col.indexExists('key')
+  if (!exist) {
+    await col.createIndex('key', {
+      name: 'key',
+      unique: false,
+    })
+  }
 
   const bulk = col.initializeUnorderedBulkOp()
 
   for (const ts of v) {
     bulk
       .find({_id: ts[0]})
-      .upsert().updateOne({v: ts[1]})
+      .upsert().updateOne({v: ts[1], key: k})
   }
 
   await bulk.execute()
@@ -43,6 +52,6 @@ export async function setTimeseries(k: string, v: Timeseries) {
 export async function getTimeseries(k: string): Promise<Timeseries> {
   const conn = await connect()
 
-  const result = await conn.collection(k).find().sort({_id: 1}).toArray()
+  const result = await conn.collection('timeseries').find({key: k}).sort({_id: 1}).toArray()
   return result.map((object): [number, number] => [object._id, object.v])
 }
