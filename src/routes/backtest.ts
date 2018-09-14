@@ -123,6 +123,10 @@ module Route {
 
       for (const unit of rebalancePeriodUnits) {
         for (let i = 1; i <= 10; i++) {
+          if (unit === 'hour' && i <= 6) {
+            continue
+          }
+
           rebalanceAdvisors.push(makeAdvisor(i, unit))
         }
       }
