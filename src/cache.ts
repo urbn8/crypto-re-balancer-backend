@@ -41,8 +41,8 @@ export async function setTimeseries(k: string, v: Timeseries) {
 
   for (const ts of v) {
     bulk
-      .find({_id: ts[0]})
-      .upsert().updateOne({v: ts[1], key: k})
+      .find({_id: k + '_' + ts[0]})
+      .upsert().updateOne({v: ts[1], t: ts[0], key: k})
   }
 
   await bulk.execute()
@@ -52,5 +52,5 @@ export async function getTimeseries(k: string): Promise<Timeseries> {
   const conn = await connect()
 
   const result = await conn.collection('timeseries').find({key: k}).sort({_id: 1}).toArray()
-  return result.map((object): [number, number] => [object._id, object.v])
+  return result.map((object): [number, number] => [object.t, object.v])
 }
