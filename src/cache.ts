@@ -29,7 +29,6 @@ export async function setTimeseries(k: string, v: Timeseries) {
 
   await conn.createCollection('timeseries')
   const col = await conn.collection('timeseries')
-  await col.deleteMany({})
   const exist = await col.indexExists('key')
   if (!exist) {
     await col.createIndex('key', {
