@@ -167,52 +167,61 @@ module Route {
 
     // default backtest
     async default(req: express.Request, res: express.Response, next: express.NextFunction) {
-      console.log('default')
-      const holdAdvisor = neverPeriodicAdvisor
+      try {
+        console.log('default')
+        const holdAdvisor = neverPeriodicAdvisor
 
-      // TODO : assets
+        // TODO : assets
 
-      const rebalancePeriod = parseInt(req.query.rebalancePeriod)
-      const rebalancePeriodUnit = req.query.rebalancePeriodUnit
-      const investment = req.query.initialInvestment ? parseFloat(req.query.initialInvestment) : 5000
+        const rebalancePeriod = parseInt(req.query.rebalancePeriod)
+        const rebalancePeriodUnit = req.query.rebalancePeriodUnit
+        const investment = req.query.initialInvestment ? parseFloat(req.query.initialInvestment) : 5000
 
-      const rebalanceAdvisor: IAdvisor = makeAdvisor(rebalancePeriod, rebalancePeriodUnit)
+        const rebalanceAdvisor: IAdvisor = makeAdvisor(rebalancePeriod, rebalancePeriodUnit)
 
-      const rebalanced = await cache.getTimeseries(cacheKey(investment, rebalanceAdvisor, [unsafeSmoother, timelineSmoother]))
-      if (rebalanced.length !== 0) {
-        console.log('loading from cache',
+        const rebalanced = await cache.getTimeseries(cacheKey(investment, rebalanceAdvisor, [unsafeSmoother, timelineSmoother]))
+        if (rebalanced.length !== 0) {
+          console.log('loading from cache',
+            cacheKey(investment, rebalanceAdvisor, [unsafeSmoother, timelineSmoother]),
+            cacheKey(investment, holdAdvisor, [unsafeSmoother, timelineSmoother]),
+          )
+          const hold = await cache.getTimeseries(cacheKey(investment, holdAdvisor, [unsafeSmoother, timelineSmoother]))
+
+          res.json({
+            hold: timeseries2xy(hold),
+            rebalance: timeseries2xy(rebalanced),
+          })
+          return
+        }
+        console.log('no cache found for ',
           cacheKey(investment, rebalanceAdvisor, [unsafeSmoother, timelineSmoother]),
-          cacheKey(investment, holdAdvisor, [unsafeSmoother, timelineSmoother]),
+            ' building backtest result'
         )
-        const hold = await cache.getTimeseries(cacheKey(investment, holdAdvisor, [unsafeSmoother, timelineSmoother]))
+
+        let hold = await cache.getTimeseries(cacheKey(investment, holdAdvisor, [unsafeSmoother, timelineSmoother]))
+        if (hold.length === 0) {
+          console.log('Start building for hold')
+          hold = await build(investment, holdAdvisor)
+        }
+        console.log('Done building for hold')
+
+        let rebalance = await cache.getTimeseries(cacheKey(investment, rebalanceAdvisor, [unsafeSmoother, timelineSmoother]))
+        if (rebalance.length === 0) {
+          console.log('Start building for rebalance')
+          rebalance = await build(investment, rebalanceAdvisor)
+        }
+        console.log('Done building for rebalance')
 
         res.json({
           hold: timeseries2xy(hold),
           rebalance: timeseries2xy(rebalanced),
         })
-        return
+      } catch(err) {
+        console.error(err)
+        res.status(500).json({
+          err,
+        })
       }
-      console.log('no cache found for ',
-        cacheKey(investment, rebalanceAdvisor, [unsafeSmoother, timelineSmoother]),
-          ' building backtest result'
-      )
-
-      let hold = await cache.getTimeseries(cacheKey(investment, holdAdvisor, [unsafeSmoother, timelineSmoother]))
-      if (hold.length === 0) {
-        hold = await build(investment, holdAdvisor)
-      }
-      console.log('Done building for hold')
-
-      let rebalance = await cache.getTimeseries(cacheKey(investment, rebalanceAdvisor, [unsafeSmoother, timelineSmoother]))
-      if (rebalance.length === 0) {
-        rebalance = await build(investment, rebalanceAdvisor)
-      }
-      console.log('Done building for rebalance')
-
-      res.json({
-        hold: timeseries2xy(hold),
-        rebalance: timeseries2xy(rebalanced),
-      })
     }
 
     // async get(req: express.Request, res: express.Response, next: express.NextFunction) {
