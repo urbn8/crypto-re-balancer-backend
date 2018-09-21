@@ -232,7 +232,7 @@ module Route {
         }
         console.log('Done building for rebalance')
 
-        res.json({
+        res.status(200).json({
           hold: timeseries2xy(hold),
           rebalance: timeseries2xy(rebalanced),
         })
