@@ -2,15 +2,17 @@
 import * as express from "express";
 
 import CandleMgoRepo from '../common/CandleMgoRepo'
-import backtest from "../common/backtest";
 import { Chandelier } from '../common/Chandelier';
-import { Asset } from "../common/Asset";
+import { Asset, AssetSymbol } from "../common/Asset";
 import { AdvisorPeriodic } from "../common/AdvisorPeriodic";
 import { oneDayInMilliseconds } from "../common/intervalPresets";
 import * as cache from "../cache";
 import { Timeseries, UnsafeSmoother, SafeSmoother, TimelineSmoother } from "../common/TimeseriesHelper";
 import { IAdvisor } from "../common/Advisor";
 import HistoricalPriceDataFetcher from "../common/HistoricalPriceDataFetcher";
+import { Simulator } from "../common/Simulator";
+import { PorfolioBalance } from "../common/PorfolioBalance";
+import { Big } from "big.js";
 
 const candleRepo = new CandleMgoRepo()
 
@@ -46,13 +48,25 @@ function timeseries2xy(timeseries: Timeseries): {
   })
 }
 
-const cacheIndices = {
-  raw(advisor: IAdvisor): string {
-    return `${ from }_${ to }_${ advisor.name }_raw`
-  },
-  smooth(advisor: IAdvisor, smoothers: {readonly name: string}[]): string {
-    return `${ from }_${ to }_${ advisor.name }_${ smoothers.map((e) => e.name).join('_') }`
-  },
+// const cacheIndices = {
+//   raw(advisor: IAdvisor): string {
+//     return `${ from }_${ to }_${ advisor.name }_raw`
+//   },
+//   smooth(advisor: IAdvisor, smoothers: {readonly name: string}[]): string {
+//     return `${ from }_${ to }_${ advisor.name }_${ smoothers.map((e) => e.name).join('_') }`
+//   },
+// }
+
+function cacheKey(investment: number, advisor: IAdvisor, smoothers?: {readonly name: string}[]) {
+  const parts: string[] = []
+  parts.push(`${ investment }`)
+  parts.push(`${ from }-${ to }`)
+  parts.push(advisor.name)
+  if (smoothers) {
+    parts.push(smoothers.map((sm) => sm.name).join('-'))
+  }
+
+  return parts.join('_')
 }
 
 const neverPeriodicAdvisor = new AdvisorPeriodic(0, 0)
@@ -65,20 +79,24 @@ const smoothers = [safeSmoother, unsafeSmoother]
 
 const timelineSmoother = new TimelineSmoother(720) // once half day
 
-async function build(advisor: IAdvisor) {
+async function build(investment: number, advisor: IAdvisor) {
   const chandelier = new Chandelier(assets, candleRepo, from, to)
-  const result = await backtest().backtest(chandelier, advisor)
+  const assetCandles = await chandelier.fetchCandles()
+
+  const backtester = new Simulator(assets, investment, assetCandles)
+  
+  const result = await backtester.backtest(advisor)
   const timeseries = result.timeseries
-  await cache.setTimeseries(cacheIndices.raw(advisor), timeseries)
-  console.log('done: ', cacheIndices.raw(advisor))
+  await cache.setTimeseries(cacheKey(investment, advisor), timeseries)
+  console.log('done: ', cacheKey(investment, advisor))
 
   const smoothData = unsafeSmoother.smoothTimeseries(timeseries)
-  await cache.setTimeseries(cacheIndices.smooth(advisor, [unsafeSmoother]), smoothData)
-  console.log('done: ', cacheIndices.smooth(advisor, [unsafeSmoother]))
+  await cache.setTimeseries(cacheKey(investment, advisor, [unsafeSmoother]), smoothData)
+  console.log('done: ', cacheKey(investment, advisor, [unsafeSmoother]))
 
   const timelineSmoothData = timelineSmoother.smoothTimeseries(smoothData)
-  await cache.setTimeseries(cacheIndices.smooth(advisor, [unsafeSmoother, timelineSmoother]), timelineSmoothData)
-  console.log('done: ', cacheIndices.smooth(advisor, [unsafeSmoother, timelineSmoother]))
+  await cache.setTimeseries(cacheKey(investment, advisor, [unsafeSmoother, timelineSmoother]), timelineSmoothData)
+  console.log('done: ', cacheKey(investment, advisor, [unsafeSmoother, timelineSmoother]))
 
   return timelineSmoothData
 }
@@ -120,6 +138,7 @@ module Route {
 
       const rebalanceAdvisors: IAdvisor[] = []
       const rebalancePeriodUnits = ['hour', 'day', 'week', 'never']
+      const investment = 5000
 
       for (const unit of rebalancePeriodUnits) {
         for (let i = 1; i <= 10; i++) {
@@ -132,60 +151,18 @@ module Route {
       }
 
       for (const advisor of rebalanceAdvisors) {
-        const rebalanced = await cache.getTimeseries(cacheIndices.smooth(advisor, [unsafeSmoother, timelineSmoother]))
+        const rebalanced = await cache.getTimeseries(cacheKey(investment, advisor, [unsafeSmoother, timelineSmoother]))
         if (rebalanced.length !== 0) {
-          console.log('EXIST, skipping: ', cacheIndices.smooth(advisor, [unsafeSmoother, timelineSmoother]))
+          console.log('EXIST, skipping: ', cacheKey(investment, advisor, [unsafeSmoother, timelineSmoother]))
           continue
         }
 
-        await build(advisor)
+        await build(5000, advisor)
       }
 
       res.json({
         success: true
       });
-
-      // try {
-      //   const chandelier = new Chandelier(assets, candleRepo, from, to)
-
-      //   let source: 'new' | 'cache' = 'new'
-      //   if (req.query.source) {
-      //     source = req.query.source
-      //   }
-
-      //   for (const advisor of advisors) {
-      //     let timeseries: Timeseries
-          
-      //     if (source === 'new') {
-      //       const result = await backtest().backtest(chandelier, advisor)
-      //       timeseries = result.timeseries
-      //       await cache.setTimeseries(cacheIndices.raw(advisor), timeseries)
-      //     } else {
-      //       timeseries = await cache.getTimeseries(cacheIndices.raw(advisor))
-      //     }
-      //     console.log('done: ', cacheIndices.raw(advisor))
-
-      //     for (const smoother of smoothers) {
-      //       const smoothData = smoother.smoothTimeseries(timeseries)
-      //       await cache.setTimeseries(cacheIndices.smooth(advisor, [smoother]), smoothData)
-      //       console.log('done: ', cacheIndices.smooth(advisor, [smoother]))
-
-      //       const timelineSmoothData = timelineSmoother.smoothTimeseries(smoothData)
-      //       await cache.setTimeseries(cacheIndices.smooth(advisor, [smoother, timelineSmoother]), timelineSmoothData)
-      //       console.log('done: ', cacheIndices.smooth(advisor, [smoother, timelineSmoother]))
-      //     }
-      //   }
-
-      //   console.log('success')
-      //   res.json({
-      //     success: true
-      //   });
-      // } catch (err) {
-      //   console.error(err)
-      //   res.send({
-      //     error: err,
-      //   })
-      // }
     }
 
     // default backtest
@@ -197,16 +174,17 @@ module Route {
 
       const rebalancePeriod = parseInt(req.query.rebalancePeriod)
       const rebalancePeriodUnit = req.query.rebalancePeriodUnit
-      
+      const investment = req.query.initialInvestment ? parseFloat(req.query.initialInvestment) : 5000
+
       const rebalanceAdvisor: IAdvisor = makeAdvisor(rebalancePeriod, rebalancePeriodUnit)
 
-      const rebalanced = await cache.getTimeseries(cacheIndices.smooth(rebalanceAdvisor, [unsafeSmoother, timelineSmoother]))
+      const rebalanced = await cache.getTimeseries(cacheKey(investment, rebalanceAdvisor, [unsafeSmoother, timelineSmoother]))
       if (rebalanced.length !== 0) {
         console.log('loading from cache',
-          cacheIndices.smooth(rebalanceAdvisor, [unsafeSmoother, timelineSmoother]),
-          cacheIndices.smooth(holdAdvisor, [unsafeSmoother, timelineSmoother]),
+          cacheKey(investment, rebalanceAdvisor, [unsafeSmoother, timelineSmoother]),
+          cacheKey(investment, holdAdvisor, [unsafeSmoother, timelineSmoother]),
         )
-        const hold = await cache.getTimeseries(cacheIndices.smooth(holdAdvisor, [unsafeSmoother, timelineSmoother]))
+        const hold = await cache.getTimeseries(cacheKey(investment, holdAdvisor, [unsafeSmoother, timelineSmoother]))
 
         res.json({
           hold: timeseries2xy(hold),
@@ -215,19 +193,19 @@ module Route {
         return
       }
       console.log('no cache found for ',
-          cacheIndices.smooth(rebalanceAdvisor, [unsafeSmoother, timelineSmoother]),
+        cacheKey(investment, rebalanceAdvisor, [unsafeSmoother, timelineSmoother]),
           ' building backtest result'
       )
 
-      let hold = await cache.getTimeseries(cacheIndices.smooth(holdAdvisor, [unsafeSmoother, timelineSmoother]))
+      let hold = await cache.getTimeseries(cacheKey(investment, holdAdvisor, [unsafeSmoother, timelineSmoother]))
       if (hold.length === 0) {
-        hold = await build(holdAdvisor)
+        hold = await build(investment, holdAdvisor)
       }
       console.log('Done building for hold')
 
-      let rebalance = await cache.getTimeseries(cacheIndices.smooth(rebalanceAdvisor, [unsafeSmoother, timelineSmoother]))
+      let rebalance = await cache.getTimeseries(cacheKey(investment, rebalanceAdvisor, [unsafeSmoother, timelineSmoother]))
       if (rebalance.length === 0) {
-        rebalance = await build(rebalanceAdvisor)
+        rebalance = await build(investment, rebalanceAdvisor)
       }
       console.log('Done building for rebalance')
 
@@ -237,42 +215,42 @@ module Route {
       })
     }
 
-    async get(req: express.Request, res: express.Response, next: express.NextFunction) {
-      try {
-        let source: 'raw' | 'safesmooth' | 'unsafesmooth' | 'safesmooth_t' | 'unsafesmooth_t' = 'raw'
-        if (req.query.source) {
-          source = req.query.source
-        }
+    // async get(req: express.Request, res: express.Response, next: express.NextFunction) {
+    //   try {
+    //     let source: 'raw' | 'safesmooth' | 'unsafesmooth' | 'safesmooth_t' | 'unsafesmooth_t' = 'raw'
+    //     if (req.query.source) {
+    //       source = req.query.source
+    //     }
 
-        let hold, rebalanced
-        if (source === 'raw') {
-          hold = await cache.getTimeseries(cacheIndices.raw(neverPeriodicAdvisor))
-          rebalanced = await cache.getTimeseries(cacheIndices.raw(onceADayPeriodicAdvisor))
-        } else if (source === 'safesmooth') {
-          hold = await cache.getTimeseries(cacheIndices.smooth(neverPeriodicAdvisor, [safeSmoother]))
-          rebalanced = await cache.getTimeseries(cacheIndices.smooth(onceADayPeriodicAdvisor, [safeSmoother]))
-        } else if (source === 'unsafesmooth') {
-          hold = await cache.getTimeseries(cacheIndices.smooth(neverPeriodicAdvisor, [unsafeSmoother]))
-          rebalanced = await cache.getTimeseries(cacheIndices.smooth(onceADayPeriodicAdvisor, [unsafeSmoother]))
-        } else if (source === 'safesmooth_t') {
-          hold = await cache.getTimeseries(cacheIndices.smooth(neverPeriodicAdvisor, [safeSmoother, timelineSmoother]))
-          rebalanced = await cache.getTimeseries(cacheIndices.smooth(onceADayPeriodicAdvisor, [safeSmoother, timelineSmoother]))
-        } else if (source === 'unsafesmooth_t') {
-          hold = await cache.getTimeseries(cacheIndices.smooth(neverPeriodicAdvisor, [unsafeSmoother, timelineSmoother]))
-          rebalanced = await cache.getTimeseries(cacheIndices.smooth(onceADayPeriodicAdvisor, [unsafeSmoother, timelineSmoother]))
-        }
+    //     let hold, rebalanced
+    //     if (source === 'raw') {
+    //       hold = await cache.getTimeseries(cacheKey(investment, neverPeriodicAdvisor))
+    //       rebalanced = await cache.getTimeseries(cacheKey(investment, onceADayPeriodicAdvisor))
+    //     } else if (source === 'safesmooth') {
+    //       hold = await cache.getTimeseries(cacheIndices.smooth(neverPeriodicAdvisor, [safeSmoother]))
+    //       rebalanced = await cache.getTimeseries(cacheIndices.smooth(onceADayPeriodicAdvisor, [safeSmoother]))
+    //     } else if (source === 'unsafesmooth') {
+    //       hold = await cache.getTimeseries(cacheIndices.smooth(neverPeriodicAdvisor, [unsafeSmoother]))
+    //       rebalanced = await cache.getTimeseries(cacheIndices.smooth(onceADayPeriodicAdvisor, [unsafeSmoother]))
+    //     } else if (source === 'safesmooth_t') {
+    //       hold = await cache.getTimeseries(cacheIndices.smooth(neverPeriodicAdvisor, [safeSmoother, timelineSmoother]))
+    //       rebalanced = await cache.getTimeseries(cacheIndices.smooth(onceADayPeriodicAdvisor, [safeSmoother, timelineSmoother]))
+    //     } else if (source === 'unsafesmooth_t') {
+    //       hold = await cache.getTimeseries(cacheIndices.smooth(neverPeriodicAdvisor, [unsafeSmoother, timelineSmoother]))
+    //       rebalanced = await cache.getTimeseries(cacheIndices.smooth(onceADayPeriodicAdvisor, [unsafeSmoother, timelineSmoother]))
+    //     }
 
-        res.json({
-          hold: timeseries2xy(hold),
-          rebalance: timeseries2xy(rebalanced),
-        });
-      } catch (err) {
-        console.error(err)
-        res.send({
-          error: err,
-        })
-      }
-    }
+    //     res.json({
+    //       hold: timeseries2xy(hold),
+    //       rebalance: timeseries2xy(rebalanced),
+    //     });
+    //   } catch (err) {
+    //     console.error(err)
+    //     res.send({
+    //       error: err,
+    //     })
+    //   }
+    // }
   }
 }
 export = Route;

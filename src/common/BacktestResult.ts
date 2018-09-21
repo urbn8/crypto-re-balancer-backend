@@ -10,7 +10,12 @@ const smoother = new UnsafeSmoother(5000)
 
 // roundtrips, transaction
 export class BacktestResult {
-  constructor(public assets: Asset[], public candlesByAssets: Map<AssetSymbol, CandleChartResult[]>, public ohlcCandles: MultiAssetsCandle[], public porfolioCandles: PorfolioCandle[]) { }
+  constructor(
+    public assets: Asset[],
+    // public candlesByAssets: Map<AssetSymbol, CandleChartResult[]>,
+    // public ohlcCandles: MultiAssetsCandle[],
+    public porfolioCandles: PorfolioCandle[],
+  ) { }
 
   get timeseries(): Timeseries {
     let timeseries: Timeseries = this.porfolioCandles.map((candle): [number, number] => {

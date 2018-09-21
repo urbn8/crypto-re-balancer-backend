@@ -82,7 +82,7 @@ class HttpServer {
         this.router.post("/fetchData", backtest.fetchData.bind(backtest.fetchData));
         this.router.get("/default", backtest.default.bind(backtest.default));
         this.router.post("/", backtest.indexData.bind(backtest.indexData));
-        this.router.get("/", backtest.get.bind(backtest.get));
+        // this.router.get("/", backtest.get.bind(backtest.get));
         this.app.use("/backtest", this.router);
     }
 }

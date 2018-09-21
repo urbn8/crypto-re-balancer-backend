@@ -5,9 +5,10 @@ import CandleRepo from "./CandleRepo";
 import { MultiAssetsCandle } from "./MultiAssetsCandle";
 import { MultiAssetsCandleFactory } from "./MultiAssetsCandleFactory";
 import { CandleChartResult } from 'binance-api-node';
+import { Big } from 'big.js';
+import { PorfolioCandle } from './PorfolioCandle';
 
 export class Chandelier {
-  public candles: MultiAssetsCandle[]
   public candlesByAssets: Map<AssetSymbol, CandleChartResult[]>
 
   constructor(
@@ -19,7 +20,7 @@ export class Chandelier {
 
   }
 
-  async load() {
+  async fetchCandles(): Promise<MultiAssetsCandle[]> {
     // const fromTime = moment().add(-10, 'day')
     // const fromTime = moment('2017-11-07')
     // const fromTime = moment('2018-02-09')
@@ -48,8 +49,7 @@ export class Chandelier {
 
     const fac = new MultiAssetsCandleFactory(this.assets, candlesOfAssets)
     // console.log('fac.candles.length', fac.candles.length, JSON.stringify(fac.candles))
-    this.candles = fac.candles
-    return this.candles
+    return fac.candles
   }
 
   /*
