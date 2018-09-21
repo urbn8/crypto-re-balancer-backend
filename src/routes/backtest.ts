@@ -16,20 +16,20 @@ import { Big } from "big.js";
 
 const candleRepo = new CandleMgoRepo()
 
-const assets: Asset[] = [
-  {
-    symbol: 'BTCUSDT',
-    name: 'Bitcoin',
-  },
-  {
-    symbol: 'ETHUSDT',
-    name: 'Ethereum',
-  },
-  {
-    symbol: 'BNBUSDT',
-    name: 'BNB',
-  },
-]
+// const assets: Asset[] = [
+//   {
+//     symbol: 'BTCUSDT',
+//     name: 'Bitcoin',
+//   },
+//   {
+//     symbol: 'ETHUSDT',
+//     name: 'Ethereum',
+//   },
+//   {
+//     symbol: 'BNBUSDT',
+//     name: 'BNB',
+//   },
+// ]
 
 // const from = '2017-07-23T00:00:00.000Z'
 // const to = '2018-08-23T00:00:00.000Z'
@@ -57,8 +57,9 @@ function timeseries2xy(timeseries: Timeseries): {
 //   },
 // }
 
-function cacheKey(investment: number, advisor: IAdvisor, smoothers?: {readonly name: string}[]) {
+function cacheKey(assets: Asset[], investment: number, advisor: IAdvisor, smoothers?: {readonly name: string}[]) {
   const parts: string[] = []
+  parts.push(assets.map((a) => a.symbol).sort().join('-'))
   parts.push(`${ investment }`)
   parts.push(`${ from }-${ to }`)
   parts.push(advisor.name)
@@ -79,7 +80,7 @@ const smoothers = [safeSmoother, unsafeSmoother]
 
 const timelineSmoother = new TimelineSmoother(720) // once half day
 
-async function build(investment: number, advisor: IAdvisor) {
+async function build(assets: Asset[], investment: number, advisor: IAdvisor) {
   const chandelier = new Chandelier(assets, candleRepo, from, to)
   const assetCandles = await chandelier.fetchCandles()
 
@@ -87,16 +88,16 @@ async function build(investment: number, advisor: IAdvisor) {
   
   const result = await backtester.backtest(advisor)
   const timeseries = result.timeseries
-  await cache.setTimeseries(cacheKey(investment, advisor), timeseries)
-  console.log('done: ', cacheKey(investment, advisor))
+  await cache.setTimeseries(cacheKey(assets, investment, advisor), timeseries)
+  console.log('done: ', cacheKey(assets, investment, advisor))
 
   const smoothData = unsafeSmoother.smoothTimeseries(timeseries)
-  await cache.setTimeseries(cacheKey(investment, advisor, [unsafeSmoother]), smoothData)
-  console.log('done: ', cacheKey(investment, advisor, [unsafeSmoother]))
+  await cache.setTimeseries(cacheKey(assets, investment, advisor, [unsafeSmoother]), smoothData)
+  console.log('done: ', cacheKey(assets, investment, advisor, [unsafeSmoother]))
 
   const timelineSmoothData = timelineSmoother.smoothTimeseries(smoothData)
-  await cache.setTimeseries(cacheKey(investment, advisor, [unsafeSmoother, timelineSmoother]), timelineSmoothData)
-  console.log('done: ', cacheKey(investment, advisor, [unsafeSmoother, timelineSmoother]))
+  await cache.setTimeseries(cacheKey(assets, investment, advisor, [unsafeSmoother, timelineSmoother]), timelineSmoothData)
+  console.log('done: ', cacheKey(assets, investment, advisor, [unsafeSmoother, timelineSmoother]))
 
   return timelineSmoothData
 }
@@ -150,14 +151,29 @@ module Route {
         }
       }
 
+      const assets: Asset[] = [
+      {
+        symbol: 'BTCUSDT',
+        name: 'Bitcoin',
+      },
+      {
+        symbol: 'ETHUSDT',
+        name: 'Ethereum',
+      },
+      {
+        symbol: 'BNBUSDT',
+        name: 'BNB',
+      },
+    ]
+
       for (const advisor of rebalanceAdvisors) {
-        const rebalanced = await cache.getTimeseries(cacheKey(investment, advisor, [unsafeSmoother, timelineSmoother]))
+        const rebalanced = await cache.getTimeseries(cacheKey(assets, investment, advisor, [unsafeSmoother, timelineSmoother]))
         if (rebalanced.length !== 0) {
-          console.log('EXIST, skipping: ', cacheKey(investment, advisor, [unsafeSmoother, timelineSmoother]))
+          console.log('EXIST, skipping: ', cacheKey(assets, investment, advisor, [unsafeSmoother, timelineSmoother]))
           continue
         }
 
-        await build(5000, advisor)
+        await build(assets, 5000, advisor)
       }
 
       res.json({
@@ -176,16 +192,20 @@ module Route {
         const rebalancePeriod = parseInt(req.query.rebalancePeriod)
         const rebalancePeriodUnit = req.query.rebalancePeriodUnit
         const investment = req.query.initialInvestment ? parseFloat(req.query.initialInvestment) : 5000
+        const assets: Asset[] = req.query.assets.split(',').map((asset) => ({
+          symbol: asset + 'USDT',
+          name: asset,
+        }))
 
         const rebalanceAdvisor: IAdvisor = makeAdvisor(rebalancePeriod, rebalancePeriodUnit)
 
-        const rebalanced = await cache.getTimeseries(cacheKey(investment, rebalanceAdvisor, [unsafeSmoother, timelineSmoother]))
+        const rebalanced = await cache.getTimeseries(cacheKey(assets, investment, rebalanceAdvisor, [unsafeSmoother, timelineSmoother]))
         if (rebalanced.length !== 0) {
           console.log('loading from cache',
-            cacheKey(investment, rebalanceAdvisor, [unsafeSmoother, timelineSmoother]),
-            cacheKey(investment, holdAdvisor, [unsafeSmoother, timelineSmoother]),
+            cacheKey(assets, investment, rebalanceAdvisor, [unsafeSmoother, timelineSmoother]),
+            cacheKey(assets, investment, holdAdvisor, [unsafeSmoother, timelineSmoother]),
           )
-          const hold = await cache.getTimeseries(cacheKey(investment, holdAdvisor, [unsafeSmoother, timelineSmoother]))
+          const hold = await cache.getTimeseries(cacheKey(assets, investment, holdAdvisor, [unsafeSmoother, timelineSmoother]))
 
           res.json({
             hold: timeseries2xy(hold),
@@ -194,21 +214,21 @@ module Route {
           return
         }
         console.log('no cache found for ',
-          cacheKey(investment, rebalanceAdvisor, [unsafeSmoother, timelineSmoother]),
+          cacheKey(assets, investment, rebalanceAdvisor, [unsafeSmoother, timelineSmoother]),
             ' building backtest result'
         )
 
-        let hold = await cache.getTimeseries(cacheKey(investment, holdAdvisor, [unsafeSmoother, timelineSmoother]))
+        let hold = await cache.getTimeseries(cacheKey(assets, investment, holdAdvisor, [unsafeSmoother, timelineSmoother]))
         if (hold.length === 0) {
           console.log('Start building for hold')
-          hold = await build(investment, holdAdvisor)
+          hold = await build(assets, investment, holdAdvisor)
         }
         console.log('Done building for hold')
 
-        let rebalance = await cache.getTimeseries(cacheKey(investment, rebalanceAdvisor, [unsafeSmoother, timelineSmoother]))
+        let rebalance = await cache.getTimeseries(cacheKey(assets, investment, rebalanceAdvisor, [unsafeSmoother, timelineSmoother]))
         if (rebalance.length === 0) {
           console.log('Start building for rebalance')
-          rebalance = await build(investment, rebalanceAdvisor)
+          rebalance = await build(assets, investment, rebalanceAdvisor)
         }
         console.log('Done building for rebalance')
 
