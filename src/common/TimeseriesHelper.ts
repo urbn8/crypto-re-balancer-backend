@@ -27,7 +27,7 @@ export class UnsafeSmoother {
 
   public smoothTimeseries(ts: Timeseries): Timeseries {
     const t = new timeseries.main(ts).smoother({
-      period: this.period
+      period: this.period,
     })
     const smoothTimeseriesData = t.slice().data
     return smoothTimeseriesData

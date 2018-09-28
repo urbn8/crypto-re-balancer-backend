@@ -2,7 +2,7 @@ import { Db, MongoClient } from "mongodb";
 import { Timeseries } from "./common/TimeseriesHelper";
 
 // var url = process.env.MONGO || 'mongodb://192.168.10.61:27017/crypto-re-balancer';
-var url = process.env.MONGO || 'mongodb://localhost:27017/crypto-re-balancer';
+const url = process.env.MONGO || 'mongodb://localhost:27017/crypto-re-balancer';
 
 let db = null
 function connect(): Promise<Db> {

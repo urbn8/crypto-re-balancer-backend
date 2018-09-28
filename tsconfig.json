@@ -1,42 +1,22 @@
 {
   "compilerOptions": {
-    "target": "es2018",
-    "moduleResolution": "node",
     "module": "commonjs",
-    "jsx": "react",
-    "lib": [
-      "dom",
-      "es2018",
-      "dom.iterable",
-      "scripthost"
-    ],
-    "types": [],
-
-    "alwaysStrict": true,
-    "strictNullChecks": false,
+    "declaration": true,
     "noImplicitAny": false,
-    "noImplicitReturns": true,
-    "noImplicitThis": true,
-    "noUnusedLocals": false,
-
-    "allowJs": true,
-    
-    "experimentalDecorators": true,
+    "removeComments": true,
+    "noLib": false,
+    "allowSyntheticDefaultImports": true,
     "emitDecoratorMetadata": true,
-
+    "experimentalDecorators": true,
+    "target": "es6",
     "sourceMap": true,
-
-    "outDir": "dist"
+    "outDir": "./dist"
   },
   "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "test/**/*.ts",
-    "tests/**/*.ts",
-    "test/**/*.tsx",
-    "node_modules/@types/**/*.d.ts"
+    "src/**/*"
   ],
   "exclude": [
-    "dist"
+    "node_modules",
+    "**/*.spec.ts"
   ]
 }

@@ -1,133 +1,84 @@
-## Node.js, Express REST API development with TypeScript
-##### Sample boilerplate project for node.js, express using TypeScript and Gulp.
+<p align="center">
+  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo_text.svg" width="320" alt="Nest Logo" /></a>
+</p>
+
+[travis-image]: https://api.travis-ci.org/nestjs/nest.svg?branch=master
+[travis-url]: https://travis-ci.org/nestjs/nest
+[linux-image]: https://img.shields.io/travis/nestjs/nest/master.svg?label=linux
+[linux-url]: https://travis-ci.org/nestjs/nest
+  
+  <p align="center">A progressive <a href="http://nodejs.org" target="blank">Node.js</a> framework for building efficient and scalable server-side applications, heavily inspired by <a href="https://angular.io" target="blank">Angular</a>.</p>
+    <p align="center">
+<a href="https://www.npmjs.com/~nestjscore"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
+<a href="https://www.npmjs.com/~nestjscore"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
+<a href="https://www.npmjs.com/~nestjscore"><img src="https://img.shields.io/npm/dm/@nestjs/core.svg" alt="NPM Downloads" /></a>
+<a href="https://travis-ci.org/nestjs/nest"><img src="https://api.travis-ci.org/nestjs/nest.svg?branch=master" alt="Travis" /></a>
+<a href="https://travis-ci.org/nestjs/nest"><img src="https://img.shields.io/travis/nestjs/nest/master.svg?label=linux" alt="Linux" /></a>
+<a href="https://coveralls.io/github/nestjs/nest?branch=master"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#5" alt="Coverage" /></a>
+<a href="https://gitter.im/nestjs/nestjs?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=body_badge"><img src="https://badges.gitter.im/nestjs/nestjs.svg" alt="Gitter" /></a>
+<a href="https://opencollective.com/nest#backer"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
+<a href="https://opencollective.com/nest#sponsor"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
+  <a href="https://paypal.me/kamilmysliwiec"><img src="https://img.shields.io/badge/Donate-PayPal-dc3d53.svg"/></a>
+  <a href="https://twitter.com/nestframework"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
+</p>
+  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
+  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+
+## Description
+
+[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
 ```
 docker build -t urbn8/crypto-re-balancer-backend .
 docker run -p 8080:8080 --net=host -d urbn8/crypto-re-balancer-backend
 ```
 
-### Why TypeScript?
-I believe that TypeScript has been embraced as the choice language for building next generation web application using ECMAScript 6 (ES6) with strong typing. Strong typing doesn’t necessarily improve the JavaScript that your Node.js server will execute, or the JavaScript that your browser might execute. However, it provides the developer more insight into public and 3rd party APIs as well as reducing the bugs (and development cycle to check for bugs) in the software we are developing.
+## Installation
 
-### Looking for Node-Express-ES6?
-```
-https://github.com/bapatel1/nodejs-express-es6-boilerplate
+```bash
+$ npm install
 ```
 
-### Tools and middleware used
-  - TypeScript
-  - express
-  - Node.js 6.x
-  - Gulp
+## Running the app
 
-  ![packages.json](https://github.com/bapatel1/nodejs-express-typescript-boilerplate/blob/master/assests/packages.png?raw=true "packages.json")
+```bash
+# development
+$ npm run start
 
-#### Setting up TypeScript
-- You’ll need some global tools too. You might need to run these as sudo or “Run As Administrator” if you’re using windows.
-```
-npm install --global typescript gulp tsd
-```
-typescript is our global typescript compiler
-gulp is a build tool that’s crazy popular now and will help us create beautiful expressive build commands
-tsd is a package manager for downloading TypeScript definition files. We’ll primarily use this for expressjs
+# watch mode
+$ npm run start:dev
 
+# incremental rebuild (webpack)
+$ npm run webpack
+$ npm run start:hmr
 
-#### Setting up tsconfig.json
-Create tsconfig.json file at root level. This tells our typescript compiler some information about how to compile our .ts extension files. You can read more about tsconfig.json files here.
-
-![tsconfig.json](https://github.com/bapatel1/nodejs-express-typescript-boilerplate/blob/master/assests/tsconfig.png?raw=true "tsconfig.json")
-
-
-#### Setting up your Linting using tslint
-Create tsling.json file under root directory for defining linting rules.
-
-![tslint.json](https://github.com/bapatel1/nodejs-express-typescript-boilerplate/blob/master/assests/tslint.png?raw=true "tslint.json")
-
-#### Setting up Gulp file
-Create gulpfile.js at your root level which will handle all gulp compilation and cleaning work.
-
-![gulpfile.js](https://github.com/bapatel1/nodejs-express-typescript-boilerplate/blob/master/assests/gulpfile.png?raw=true "gulpfile.json")
-
-#### Server Setup
-Now let’s start moving towards actual ./Src folder and actual server setup code.
-
-In our src directory. We’ll need to start a typescript definition file.
-
-```
-cd src
-tsd init -y
+# production mode
+$ npm run start:prod
 ```
 
-This will create one file “tsd.json” and one folder “typings” in your src folder. Now we’ll install express’s typescript definition with:
+## Test
 
-```
-cd src
-tsd install express –s
-tsd install body-parser –s
-```
+```bash
+# unit tests
+$ npm run test
 
-#### Main server.ts file setup
-Create server.ts file under ./src for server setup.
+# e2e tests
+$ npm run test:e2e
 
-![import](https://github.com/bapatel1/nodejs-express-typescript-boilerplate/blob/master/assests/import1.png?raw=true "import1.ts")
-
-#### Let’s define our first class “HttpServer”
-– it will initiate and define express app
-– handle bootstrapping express app
-– handle defining routes
-– and basic express configurations
-
-![class](https://github.com/bapatel1/nodejs-express-typescript-boilerplate/blob/master/assests/class.png?raw=true "class.ts")
-
-![Express configurations](https://github.com/bapatel1/nodejs-express-typescript-boilerplate/blob/master/assests/configuration.png?raw=true "configuration.ts")
-
-
-![import](https://github.com/bapatel1/nodejs-express-typescript-boilerplate/blob/master/assests/import2.png?raw=true "import2.ts")
-
-
-![routes](https://github.com/bapatel1/nodejs-express-typescript-boilerplate/blob/master/assests/routes.png?raw=true "routes.ts")
-
-We will get to the route files later on but first let’s start server and finish our server.ts coding
-
-
-![Server](https://github.com/bapatel1/nodejs-express-typescript-boilerplate/blob/master/assests/server.png?raw=true "server.ts")
-
-Helper functions like “onError” and “onListening” are here –
-
-![helper](https://github.com/bapatel1/nodejs-express-typescript-boilerplate/blob/master/assests/helper.png?raw=true "helper.ts")
-
-
-#### Setting up Express Routes
-
-- We have two routes – Index and Users for example.
-  -   Create “routes” folder under “src” folder which will have our routes.
-  -   Create Index.ts and Users.ts files inside routes folder.
-
-![index](https://github.com/bapatel1/nodejs-express-typescript-boilerplate/blob/master/assests/index.png?raw=true "index.ts")
-
-
-![users](https://github.com/bapatel1/nodejs-express-typescript-boilerplate/blob/master/assests/users.png?raw=true "users.ts")
-
-
-#### Final Run and build
-```
-> npm run gulp  or gulp build
-> npm run start
+# test coverage
+$ npm run test:cov
 ```
 
-![postman](https://github.com/bapatel1/nodejs-express-typescript-boilerplate/blob/master/assests/postman.png?raw=true "postman")
+## Support
 
-##### Author
-```
-Bhavin Patel
-```
+Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
 
-##### Repository
-```
-https://github.com/bapatel1/nodejs-express-typescript-boilerplate
-```
+## Stay in touch
 
-##### Blog
-```
-https://itsmebhavin.wordpress.com/
-```
+- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
+- Website - [https://nestjs.com](https://nestjs.com/)
+- Twitter - [@nestframework](https://twitter.com/nestframework)
+
+## License
+
+  Nest is [MIT licensed](LICENSE).

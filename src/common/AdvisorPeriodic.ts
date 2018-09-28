@@ -22,26 +22,26 @@ export class AdvisorPeriodic implements IAdvisor {
 
     if (this.rebalanceInterval === 0) {
       return {
-        action: 'hold'
+        action: 'hold',
       }
     }
 
     if (candle.timestamp < (this.firstCandle.timestamp + this.kickoffDelay)) {
       return {
-        action: 'hold'
+        action: 'hold',
       }
     }
 
     if (this.lastRebalance === 0) {
       return this.rebalance(candle.timestamp)
     }
-    
+
     if (this.lastRebalance + this.rebalanceInterval <= candle.timestamp) {
       return this.rebalance(candle.timestamp)
     }
 
     return {
-      action: 'hold'
+      action: 'hold',
     }
   }
 
@@ -49,7 +49,7 @@ export class AdvisorPeriodic implements IAdvisor {
     this.lastRebalance = timestamp
 
     return {
-      action: 'rebalance'
+      action: 'rebalance',
     }
   }
 }
