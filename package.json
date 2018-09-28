@@ -10,7 +10,7 @@
     "start:dev": "nodemon",
     "start:debug": "nodemon --config nodemon-debug.json",
     "prestart:prod": "rimraf dist && tsc",
-    "start:prod": "node dist/main.js --max-old-space-size=8192 ./build/server",
+    "start:prod": "node dist/main.js ./build/server --max-old-space-size=8192",
     "start:hmr": "node dist/server",
     "lint": "tslint -p tsconfig.json -c tslint.json",
     "test": "jest",

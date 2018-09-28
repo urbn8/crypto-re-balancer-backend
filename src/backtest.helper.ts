@@ -6,11 +6,16 @@ import CandleMgoRepo from "./common/CandleMgoRepo";
 import { Timeseries, SafeSmoother, UnsafeSmoother, TimelineSmoother } from "./common/TimeseriesHelper";
 import * as cache from "./cache";
 import { AdvisorPeriodic } from "./common/AdvisorPeriodic";
+import { fromTime, toTime } from "./common/HistoricalPriceDataFetcher";
 
 const candleRepo = new CandleMgoRepo()
 
-const from = '2017-07-23'
-const to = '2018-08-23'
+export const supportedAssetPairs = [
+  "BTCUSDT", "ETHUSDT",
+  "BNBUSDT", "BCCUSDT", "NEOUSDT", "LTCUSDT",
+  "QTUMUSDT", "ADAUSDT", "XRPUSDT", "TUSDUSDT",
+  "XLMUSDT", "ONTUSDT", "TRXUSDT", "ETCUSDT",
+  "ICXUSDT", "VENUSDT"]
 
 export function timeseries2xy(timeseries: Timeseries): {
   x: Date;
@@ -28,7 +33,7 @@ export function cacheKey(assets: Asset[], investment: number, advisor: IAdvisor,
   const parts: string[] = []
   parts.push(assets.map((a) => a.symbol).sort().join('-'))
   parts.push(`${ investment }`)
-  parts.push(`${ from }-${ to }`)
+  parts.push(`${ fromTime }-${ toTime }`)
   parts.push(advisor.name)
   if (smoothers) {
     parts.push(smoothers.map((sm) => sm.name).join('-'))
@@ -42,7 +47,7 @@ export const unsafeSmoother = new UnsafeSmoother(200)
 export const timelineSmoother = new TimelineSmoother(720) // once half day
 
 export async function build(assets: Asset[], investment: number, advisor: IAdvisor) {
-  const chandelier = new Chandelier(assets, candleRepo, from, to)
+  const chandelier = new Chandelier(assets, candleRepo, fromTime, toTime)
   const assetCandles = await chandelier.fetchCandles()
 
   const backtester = new Simulator(assets, investment, assetCandles)
@@ -85,4 +90,22 @@ export function makeAdvisor(rebalancePeriod: number, rebalancePeriodUnit: string
   }
 
   return rebalanceAdvisor
+}
+
+export function powerSet( list: string[] ): string[][] {
+  const set: string[][] = []
+  const listSize = list.length
+  const combinationsCount = (1 << listSize)
+  let combination: string[] = []
+
+  for (let i = 1; i < combinationsCount ; i++ ){
+      combination = [];
+      for (let j = 0; j < listSize; j++) {
+          if ((i & (1 << j))){
+              combination.push(list[j]);
+          }
+      }
+      set.push(combination);
+  }
+  return set;
 }

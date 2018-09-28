@@ -3,7 +3,8 @@ import { MongoClient, Db } from 'mongodb'
 import { CandleChartResult, CandleChartInterval } from 'binance-api-node';
 import CandleRepo from './CandleRepo';
 
-var url = process.env.MONGO || 'mongodb://localhost:27017/crypto-re-balancer';
+const url = process.env.MONGO || 'mongodb://192.168.10.61:27017/crypto-re-balancer';
+// const url = process.env.MONGO || 'mongodb://localhost:27017/crypto-re-balancer';
 
 export default class CandleMgoRepo implements CandleRepo {
   private db?: Db
@@ -24,7 +25,7 @@ export default class CandleMgoRepo implements CandleRepo {
           reject(err)
           return
         }
-        
+
         this.db = mgoClient.db('crypto-re-balancer')
         resolve(this.db)
       })
@@ -46,7 +47,7 @@ export default class CandleMgoRepo implements CandleRepo {
     const data = await col.find<CandleChartResult>({
       openTime: {
         $gte: moment().add(-1, 'year').unix(),
-      }
+      },
     }).toArray()
     return data
   }
@@ -58,7 +59,7 @@ export default class CandleMgoRepo implements CandleRepo {
     const data = await col.find<CandleChartResult>({
       openTime: {
         $gte: since.getTime(),
-      }
+      },
     }).toArray()
     return data
   }
@@ -71,7 +72,7 @@ export default class CandleMgoRepo implements CandleRepo {
       openTime: {
         $gte: since.getTime(),
         $lte: to.getTime(),
-      }
+      },
     }).toArray()
     return data
   }

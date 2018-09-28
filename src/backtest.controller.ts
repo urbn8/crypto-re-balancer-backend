@@ -4,7 +4,7 @@ import HistoricalPriceDataFetcher from './common/HistoricalPriceDataFetcher';
 import { IAdvisor } from './common/Advisor';
 import { Asset } from './common/Asset';
 import * as cache from "./cache";
-import { cacheKey, makeAdvisor, unsafeSmoother, timelineSmoother, build, neverPeriodicAdvisor, timeseries2xy } from './backtest.helper';
+import { cacheKey, makeAdvisor, unsafeSmoother, timelineSmoother, build, neverPeriodicAdvisor, timeseries2xy, supportedAssetPairs, powerSet } from './backtest.helper';
 
 @Controller('backtest')
 export class BacktestController {
@@ -81,7 +81,6 @@ export class BacktestController {
 
   @Get('index')
   async index() {
-
     const rebalanceAdvisors: IAdvisor[] = []
     const rebalancePeriodUnits = ['hour', 'day', 'week', 'never']
     const investment = 5000
@@ -96,29 +95,24 @@ export class BacktestController {
       }
     }
 
-    const assets: Asset[] = [
-    {
-      symbol: 'BTCUSDT',
-      name: 'Bitcoin',
-    },
-    {
-      symbol: 'ETHUSDT',
-      name: 'Ethereum',
-    },
-    {
-      symbol: 'BNBUSDT',
-      name: 'BNB',
-    },
-  ]
+    const combinations: Asset[][] = powerSet(supportedAssetPairs).map((combination) => {
+      return combination.map((asset) => ({
+        symbol: asset + 'USDT',
+        name: asset,
+      }))
+    })
+    console.log('combinations: ', JSON.stringify(combinations))
 
     for (const advisor of rebalanceAdvisors) {
-      const rebalanced = await cache.getTimeseries(cacheKey(assets, investment, advisor, [unsafeSmoother, timelineSmoother]))
-      if (rebalanced.length !== 0) {
-        console.log('EXIST, skipping: ', cacheKey(assets, investment, advisor, [unsafeSmoother, timelineSmoother]))
-        continue
-      }
+      for (const assets of combinations) {
+        const rebalanced = await cache.getTimeseries(cacheKey(assets, investment, advisor, [unsafeSmoother, timelineSmoother]))
+        if (rebalanced.length !== 0) {
+          console.log('EXIST, skipping: ', cacheKey(assets, investment, advisor, [unsafeSmoother, timelineSmoother]))
+          continue
+        }
 
-      await build(assets, 5000, advisor)
+        await build(assets, 5000, advisor)
+      }
     }
 
     return {

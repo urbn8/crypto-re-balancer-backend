@@ -1,4 +1,5 @@
 import Binance, { CandleChartInterval } from 'binance-api-node'
+import * as moment from 'moment'
 
 import CandleMgoRepo from './CandleMgoRepo'
 
@@ -8,14 +9,22 @@ const candleRepo = new CandleMgoRepo()
 
 const sleep = (duration: number) => new Promise((resolve) => setTimeout(resolve, duration))
 
+export const fromTime = '2017-09-01'
+export const toTime = '2018-09-27'
+
 export default class HistoricalPriceDataFetcher {
   public async execute() {
     console.log('START')
-    for (const symbol of ["BTCUSDT","ETHUSDT","BNBUSDT","BCCUSDT","NEOUSDT","LTCUSDT","QTUMUSDT","ADAUSDT","XRPUSDT","TUSDUSDT","XLMUSDT","ONTUSDT","TRXUSDT","ETCUSDT","ICXUSDT","VENUSDT"]) {
+    for (const symbol of [
+      "BTCUSDT", "ETHUSDT",
+      "BNBUSDT", "BCCUSDT", "NEOUSDT", "LTCUSDT",
+      "QTUMUSDT", "ADAUSDT", "XRPUSDT", "TUSDUSDT",
+      "XLMUSDT", "ONTUSDT", "TRXUSDT", "ETCUSDT",
+      "ICXUSDT", "VENUSDT"]) {
       console.log('symbol', symbol)
       await this.executeSymbol(symbol, '1m')
-      await this.executeSymbol(symbol, '1h')
-      await this.executeSymbol(symbol, '1d')
+      // await this.executeSymbol(symbol, '1h')
+      // await this.executeSymbol(symbol, '1d')
     }
 
     console.log('DONE')
@@ -23,7 +32,8 @@ export default class HistoricalPriceDataFetcher {
 
   public async executeSymbol(symbol: string, interval: CandleChartInterval) {
     const limit = 500
-    let tsLast = 1483243199000
+    let tsLast = moment(fromTime).valueOf()
+    // let tsLast = 1483243199000
     // let tsLast = 1538366399000
 
     while (true) {

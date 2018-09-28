@@ -9,7 +9,6 @@ import { AssetSymbol, Asset } from "./Asset";
 import { Big } from "big.js";
 import { CandleChartResult } from "binance-api-node";
 
-
 export class Simulator {
   private totalFeeCosts = 0
   private totalTradedVolume = 0
@@ -24,6 +23,7 @@ export class Simulator {
     investment: number,
     private priceCandles: MultiAssetsCandle[],
   ) {
+    console.log('assets: ', assets)
     const initialPorfolio = this.initialPorfolio(investment, priceCandles[0])
 
     this.initialPorfolioBalance = new PorfolioBalance(
@@ -43,7 +43,7 @@ export class Simulator {
 
     // return this.transactions[this.transactions.length - 1].rebalanced
   }
-  
+
   public initialPorfolio(investment: number, firstCandle: MultiAssetsCandle): Map<AssetSymbol, Big> {
     const nonZeros = new Map<AssetSymbol, CandleChartResult>()
     firstCandle.data.forEach((candle, assetSymbol) => {
