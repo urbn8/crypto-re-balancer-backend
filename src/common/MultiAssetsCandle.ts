@@ -27,11 +27,13 @@ export class MultiAssetsCandle {
     return {
       timestamp,
       datetime: new Date(timestamp),
-      data: Array.from(data.keys()).map((k) => ({[k]: data.get(k)}))
+      data: Array.from(data.keys()).map((k) => ({[k]: data.get(k)})),
     }
   }
 
-  static fromCandlesSet(timestamp: number, assetSymbols: AssetSymbol[], candlesSet: Map<AssetSymbol, CandleChartResult | undefined>): MultiAssetsCandle {
+  static fromCandlesSet(
+    timestamp: number, assetSymbols: AssetSymbol[], candlesSet: Map<AssetSymbol, CandleChartResult | undefined>,
+  ): MultiAssetsCandle {
     if (assetSymbols.length !== candlesSet.size) {
       // console.error('assetSymbols', assetSymbols, 'candlesSet', candlesSet)
       throw new Error('assetSymbols.length !== candlesSet.length')

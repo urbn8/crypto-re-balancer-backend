@@ -25,6 +25,20 @@ function connect(): Promise<Db> {
   })
 }
 
+function chunkArray(myArray, chunk_size){
+  let index = 0;
+  const arrayLength = myArray.length;
+  const tempArray = [];
+
+  for (index = 0; index < arrayLength; index += chunk_size) {
+      const myChunk = myArray.slice(index, index + chunk_size);
+      // Do something if you want with the group
+      tempArray.push(myChunk);
+  }
+
+  return tempArray;
+}
+
 export async function setTimeseries(k: string, v: Timeseries) {
   const conn = await connect()
 
@@ -38,15 +52,24 @@ export async function setTimeseries(k: string, v: Timeseries) {
     })
   }
 
-  const bulk = col.initializeUnorderedBulkOp()
+  const chunks = chunkArray(v, 5000)
+  for (const chunk of chunks) {
 
-  for (const ts of v) {
-    bulk
-      .find({_id: k + '_' + ts[0]})
-      .upsert().updateOne({v: ts[1], t: ts[0], key: k})
+    const bulk = col.initializeUnorderedBulkOp()
+
+    for (const ts of chunk) {
+      bulk
+        .find({_id: k + '_' + ts[0]})
+        .upsert().updateOne({v: ts[1], t: ts[0], key: k})
+    }
+
+    try {
+      await bulk.execute()
+    } catch (err) {
+      console.error(`error while insert for key ${ k } value ${ chunk }`)
+      throw err
+    }
   }
-
-  await bulk.execute()
 }
 
 export async function getTimeseries(k: string): Promise<Timeseries> {

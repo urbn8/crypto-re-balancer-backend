@@ -24,6 +24,11 @@ export class Simulator {
     private priceCandles: MultiAssetsCandle[],
   ) {
     console.log('assets: ', assets)
+
+    if (!priceCandles[0]) {
+      throw new Error(`no candle found for assets ${ assets }`)
+    }
+
     const initialPorfolio = this.initialPorfolio(investment, priceCandles[0])
 
     this.initialPorfolioBalance = new PorfolioBalance(

@@ -4,7 +4,12 @@ import HistoricalPriceDataFetcher from './common/HistoricalPriceDataFetcher';
 import { IAdvisor } from './common/Advisor';
 import { Asset } from './common/Asset';
 import * as cache from "./cache";
-import { cacheKey, makeAdvisor, unsafeSmoother, timelineSmoother, build, neverPeriodicAdvisor, timeseries2xy, supportedAssetPairs, powerSet } from './backtest.helper';
+import {
+  cacheKey, makeAdvisor, unsafeSmoother, timelineSmoother,
+  build, neverPeriodicAdvisor, timeseries2xy, supportedAssetPairs,
+  powerSet,
+  supportedAsset,
+} from './backtest.helper';
 
 @Controller('backtest')
 export class BacktestController {
@@ -95,13 +100,13 @@ export class BacktestController {
       }
     }
 
-    const combinations: Asset[][] = powerSet(supportedAssetPairs).map((combination) => {
+    const combinations: Asset[][] = powerSet(supportedAsset).map((combination) => {
       return combination.map((asset) => ({
         symbol: asset + 'USDT',
         name: asset,
       }))
     })
-    console.log('combinations: ', JSON.stringify(combinations))
+    console.log('combinations: ', combinations.length)
 
     for (const advisor of rebalanceAdvisors) {
       for (const assets of combinations) {

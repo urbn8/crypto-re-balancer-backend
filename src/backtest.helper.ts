@@ -10,12 +10,15 @@ import { fromTime, toTime } from "./common/HistoricalPriceDataFetcher";
 
 const candleRepo = new CandleMgoRepo()
 
-export const supportedAssetPairs = [
-  "BTCUSDT", "ETHUSDT",
-  "BNBUSDT", "BCCUSDT", "NEOUSDT", "LTCUSDT",
-  "QTUMUSDT", "ADAUSDT", "XRPUSDT", "TUSDUSDT",
-  "XLMUSDT", "ONTUSDT", "TRXUSDT", "ETCUSDT",
-  "ICXUSDT", "VENUSDT"]
+export const supportedAsset = [
+  "BTC", "ETH",
+  "BNB", "BCC", "NEO", "LTC",
+  "QTUM", "ADA", "XRP", "TUSD",
+  "XLM", "ONT", "TRX", "ETC",
+  "ICX", "VEN",
+]
+
+export const supportedAssetPairs = supportedAsset.map((a) => a + 'USDT')
 
 export function timeseries2xy(timeseries: Timeseries): {
   x: Date;
